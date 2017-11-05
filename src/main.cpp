@@ -12,6 +12,9 @@
 // for convenience
 using json = nlohmann::json;
 
+// Set latency
+const double t_latency = 0.1;
+
 // For converting back and forth between radians and degrees.
 
 constexpr double pi() {
@@ -102,6 +105,7 @@ int main() {
                   double px = j[1]["x"];
                   double py = j[1]["y"];
                   double psi = j[1]["psi"];
+                  double psi_unity = j[1]["psi_unity"];
                   double v = j[1]["speed"];
 
                   /*
@@ -110,8 +114,29 @@ int main() {
                    * Both are in between [-1, 1].
                    *
                    */
-                  double steer_value;
-                  double throttle_value;
+                  
+                  // Project the vehicles position and orientation given the latency
+                  
+                  
+                  // Transform the waypoints to the vehicle coordination system
+                  
+                  
+                  // Fit a polynomial to the way points and save the polynomial 
+                  // coefficients in the respective property of the MPC instance
+                  
+                  
+                  // Calculate the cross-track and orientation error
+                  
+                  
+                  // Create the state vector
+                  Eigen::VectorXd state(6);
+                  state << x, y, psi_unity, v, cte, epsi;
+                  
+                  // Solve the optimization problem and retrieve the actuator values
+                  vector<double> actuators = mpc.Solve(state,coeffs);
+                  
+                  double steer_value = actuators[0];
+                  double throttle_value = actuators[0];
 
                   json msgJson;
                   // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.

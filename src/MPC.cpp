@@ -2,7 +2,6 @@
 #include <cppad/cppad.hpp>
 #include <cppad/ipopt/solve.hpp>
 #include "Eigen-3.3/Eigen/Core"
-#include "Eigen-3.3/test/main.h"
 
 using CppAD::AD;
 
@@ -183,8 +182,6 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     vars[i] = 0.0;
   }
 
-  Dvector vars_lowerbound(n_vars);
-  Dvector vars_upperbound(n_vars);
   // TODO: Set lower and upper limits for variables.
   // Initial state
   vars[x_start] = x;
@@ -224,8 +221,6 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     constraints_lowerbound[i] = 0;
     constraints_upperbound[i] = 0;
   }
-  
-  
   
   // Set initial state constraints
   constraints_lowerbound[x_start] = x;
@@ -283,5 +278,5 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   //
   // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
   // creates a 2 element double vector.
-  return {};
+  return {solution.x[delta_start],solution.x[a_start]};
 }
