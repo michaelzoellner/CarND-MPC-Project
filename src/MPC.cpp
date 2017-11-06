@@ -145,7 +145,7 @@ MPC::~MPC() {
 
 vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   bool ok = true;
-  size_t i;
+//  size_t i;
   typedef CPPAD_TESTVECTOR(double) Dvector;
   
   double x = state[0];
@@ -268,5 +268,15 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   //
   // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
   // creates a 2 element double vector.
-  return {solution.x[delta_start],solution.x[a_start]};
+  
+  vector<double> returnVec;
+  returnVec.push_back(solution.x[delta_start]);
+  returnVec.push_back(solution.x[a_start]);
+  
+  for (int i = 0; i < N; i++) {
+    returnVec.push_back(x_start - 1 + i);
+    returnVec.push_back(y_start - 1 + i);
+  }
+  
+  return returnVec;
 }

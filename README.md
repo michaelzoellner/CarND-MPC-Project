@@ -3,6 +3,17 @@ Self-Driving Car Engineer Nanodegree Program
 
 ---
 
+## My notes
+
+# Tricky things to figure out
+- Projection of the vehicles state after latency: State needed in the vehicles coordinate system, hence the movement starts at x = y = psi = 0
+- Diverse unit, offset and orientation corrections: mph to m/s, radians to degrees, clockwise vs. counter-clockwise orientation
+
+
+
+
+
+
 ## Dependencies
 
 * cmake >= 3.5

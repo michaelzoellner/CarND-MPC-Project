@@ -122,15 +122,23 @@ int main() {
           // Project the vehicles position and orientation given the latency
           px = px + cos(psi) * v * t_latency;
           py = py + sin(psi) * v * t_latency;
-          psi = psi * v / mpc.Lf * steering_angle * t_latency;
+          psi = psi - v / mpc.Lf * steering_angle * t_latency;
           v = v + throttle * t_latency;
 
           // Transform the waypoints to the vehicle coordination system
           Eigen::VectorXd wayptsx_car(wayptsx.size());
           Eigen::VectorXd wayptsy_car(wayptsy.size());
+          vector<double> next_x_vals(wayptsx.size());
+          vector<double> next_y_vals(wayptsx.size());
+          double x;
+          double y;
           for (int i = 0; i < wayptsx.size(); i++) {
-            wayptsx_car[i] = (wayptsx[i]-px) * cos(psi) + (wayptsy[i]-py) * sin(psi);
-            wayptsy_car[i] = -(wayptsx[i]-px) * sin(psi) + (wayptsy[i]-py) * cos(psi);
+            x = (wayptsx[i]-px) * cos(psi) + (wayptsy[i]-py) * sin(psi);
+            next_x_vals[i] = x;
+            wayptsx_car[i] = x;
+            y = -(wayptsx[i]-px) * sin(psi) + (wayptsy[i]-py) * cos(psi);
+            next_y_vals[i] = y;
+            wayptsy_car[i] = y;
           }
 
           // Fit a 3rd order polynomial to the way points
@@ -142,13 +150,13 @@ int main() {
 
           // Create the state vector
           Eigen::VectorXd state(6);
-          state << px, py, psi, v, cte, epsi;
+          state << 0.0, 0.0, 0.0, v, cte, epsi;
 
           // Solve the optimization problem and retrieve the actuator values
-          vector<double> actuators = mpc.Solve(state, coeffs);
+          vector<double> returnedDat = mpc.Solve(state, coeffs);
 
-          double steer_value = actuators[0];
-          double throttle_value = actuators[0];
+          double steer_value = returnedDat[0] / deg2rad(25); ;
+          double throttle_value = returnedDat[1];
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
@@ -159,6 +167,17 @@ int main() {
           //Display the MPC predicted trajectory 
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
+          for (int i = 2; i < returnedDat.size(); i = i+2) {
+            mpc_x_vals.push_back(returnedDat[i]);
+            mpc_y_vals.push_back(returnedDat[i+1]);
+          }
+          
+          // For debugging, display the polynomials points to check the fitting
+//          for (int i = 0; i < wayptsx_car.size(); i++) {
+//            mpc_x_vals.push_back(wayptsx_car[i]);
+//            mpc_y_vals.push_back(polyeval(coeffs,wayptsx_car[i]));
+//          }
+          
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
@@ -167,11 +186,11 @@ int main() {
           msgJson["mpc_y"] = mpc_y_vals;
 
           //Display the waypoints/reference line
-          vector<double> next_x_vals;
-          vector<double> next_y_vals;
+          
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
+          
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
