@@ -30,18 +30,6 @@ float cost_weight_delta_grad = 0;
 float cost_weight_alpha = 0;
 float cost_weight_alpha_grad = 0;
 
-// This value assumes the model presented in the classroom is used.
-//
-// It was obtained by measuring the radius formed by running the vehicle in the
-// simulator around in a circle with a constant steering angle and velocity on a
-// flat terrain.
-//
-// Lf was tuned until the the radius formed by the simulating the model
-// presented in the classroom matched the previous radius.
-//
-// This is the length from front to CoG that has a similar radius.
-const double Lf = 2.67;
-
 // Target velocity
 double ref_v = 30;
 
@@ -49,9 +37,11 @@ class FG_eval {
 public:
   // Fitted polynomial coefficients
   Eigen::VectorXd coeffs;
+  double Lf;
 
-  FG_eval(Eigen::VectorXd coeffs) {
+  FG_eval(Eigen::VectorXd coeffs, double Lf) {
     this->coeffs = coeffs;
+    this->Lf = Lf;
   }
 
   typedef CPPAD_TESTVECTOR(AD<double>) ADvector;
@@ -238,7 +228,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   constraints_upperbound[epsi_start] = epsi;
 
   // object that computes objective and constraints
-  FG_eval fg_eval(coeffs);
+  FG_eval fg_eval(coeffs, Lf);
 
   //
   // NOTE: You don't have to worry about these options
