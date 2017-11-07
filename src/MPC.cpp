@@ -7,9 +7,8 @@ using CppAD::AD;
 
 // TODO: Set the timestep length and duration
 // Start by using the numbers from the MPC quiz
-size_t N = 25;
-double dt = 0.05;
-double t_latency = 0.1;
+size_t N = 15;
+double dt = 0.15;
 
 // Calculate the position of the first item of a kind in the total state vector
 size_t x_start = 0;
@@ -23,8 +22,8 @@ size_t a_start = delta_start + N - 1;
 
 // Define weights for the cost function (plain summation is not useful)
 float cost_weight_cte = 1;
-float cost_weight_epsi = 1;
-float cost_weight_vref = 1;
+float cost_weight_epsi = 0;
+float cost_weight_vref = 0.00001;
 float cost_weight_delta = 0;
 float cost_weight_delta_grad = 0;
 float cost_weight_alpha = 0;
@@ -87,7 +86,7 @@ public:
     fg[1 + epsi_start] = vars[epsi_start];
     
     // Constraints for the future time steps
-    for (int t = 1; t < N; t++) {
+    for (int t = 1; t < N-1; t++) {
       // The state at time t+1 .
       AD<double> x1 = vars[x_start + t];
       AD<double> y1 = vars[y_start + t];
@@ -108,8 +107,8 @@ public:
       AD<double> delta0 = vars[delta_start + t - 1];
       AD<double> a0 = vars[a_start + t - 1];
 
-      AD<double> f0 = coeffs[0] + coeffs[1] * x0;
-      AD<double> psides0 = CppAD::atan(coeffs[1]);
+      AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * pow(x0,2) + coeffs[3] * pow(x0,3);
+      AD<double> psides0 = CppAD::atan(coeffs[1] + (2 * coeffs[2] * x0) + (3 * coeffs[3]* pow(x0,2) ));
 
       // Here's `x` to get you started.
       // The idea here is to constraint this value to be 0.
@@ -123,12 +122,12 @@ public:
       // epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
       fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
       fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
-      fg[1 + psi_start + t] = psi1 - (psi0 + v0 * delta0 / Lf * dt);
+      fg[1 + psi_start + t] = psi1 - (psi0 - v0 * delta0 / Lf * dt);
       fg[1 + v_start + t] = v1 - (v0 + a0 * dt);
       fg[1 + cte_start + t] =
           cte1 - ((f0 - y0) + (v0 * CppAD::sin(epsi0) * dt));
       fg[1 + epsi_start + t] =
-          epsi1 - ((psi0 - psides0) + v0 * delta0 / Lf * dt);
+          epsi1 - ((psi0 - psides0) - v0 * delta0 / Lf * dt);
     }
   }
 };
@@ -154,6 +153,13 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   double v = state[3];
   double cte = state[4];
   double epsi = state[5];
+  
+//  cout << "X pos is " << x << endl;
+//  cout << "Y pos is " << y << endl;
+//  cout << "PSI is " << psi << endl;
+//  cout << "V is " << v << endl;
+//  cout << "CTE is " << cte << endl;
+//  cout << "EPSI is " << epsi << endl;
 
   // TODO: Set the number of model variables (includes both states and inputs).
   // For example: If the state is a 4 element vector, the actuators is a 2
@@ -271,7 +277,9 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   
   vector<double> returnVec;
   returnVec.push_back(solution.x[delta_start]);
+  cout << "Solution delta: " << solution.x[delta_start] << endl;
   returnVec.push_back(solution.x[a_start]);
+  cout << "Solution alpha: " << solution.x[a_start] << endl;
   
   for (int i = 0; i < N; i++) {
     returnVec.push_back(x_start - 1 + i);
