@@ -21,26 +21,27 @@ size_t delta_start = epsi_start + N;
 size_t a_start = delta_start + N - 1;
 
 // Define weights for the cost function (plain summation is not useful)
-float cost_weight_cte = 1;
-float cost_weight_epsi = 0;
-float cost_weight_vref = 0.00001;
-float cost_weight_delta = 0;
-float cost_weight_delta_grad = 0;
-float cost_weight_alpha = 0;
-float cost_weight_alpha_grad = 0;
-
-// Target velocity
-double ref_v = 30;
+float cost_weight_cte = 5;
+float cost_weight_epsi = 1;
+float cost_weight_vref = 1;
+float cost_weight_delta = 2000;
+float cost_weight_delta_grad = 2000;
+float cost_weight_alpha = 1;
+float cost_weight_alpha_grad = 1;
 
 class FG_eval {
 public:
   // Fitted polynomial coefficients
   Eigen::VectorXd coeffs;
   double Lf;
+  // Target velocity
+  double ref_v = 30;
 
-  FG_eval(Eigen::VectorXd coeffs, double Lf) {
+
+  FG_eval(Eigen::VectorXd coeffs, double Lf, double ref_v) {
     this->coeffs = coeffs;
     this->Lf = Lf;
+    this->ref_v = ref_v;
   }
 
   typedef CPPAD_TESTVECTOR(AD<double>) ADvector;
@@ -142,7 +143,9 @@ MPC::MPC() {
 MPC::~MPC() {
 }
 
-vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
+vector<double> MPC::Solve(Eigen::VectorXd state, 
+        Eigen::VectorXd coeffs, 
+        double ref_v) {
   bool ok = true;
 //  size_t i;
   typedef CPPAD_TESTVECTOR(double) Dvector;
@@ -199,8 +202,8 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   
   // Steering is possible from -25 to 25 degrees (in radians!)
   for (int i = delta_start; i < a_start; i++) {
-    vars_lowerbound[i] = -25/180 * 3.1415;
-    vars_upperbound[i] = 25/180 * 3.1415;
+    vars_lowerbound[i] = -0.4;
+    vars_upperbound[i] = 0.4;
   }
   
   // Throttle/brake can take values from -1 to 1
@@ -234,7 +237,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   constraints_upperbound[epsi_start] = epsi;
 
   // object that computes objective and constraints
-  FG_eval fg_eval(coeffs, Lf);
+  FG_eval fg_eval(coeffs, Lf, ref_v);
 
   //
   // NOTE: You don't have to worry about these options
@@ -276,14 +279,16 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // creates a 2 element double vector.
   
   vector<double> returnVec;
-  returnVec.push_back(solution.x[delta_start]);
+  returnVec.resize(2*(N+1));
+  returnVec[0] = solution.x[delta_start];
   cout << "Solution delta: " << solution.x[delta_start] << endl;
-  returnVec.push_back(solution.x[a_start]);
+  returnVec[1] = solution.x[a_start];
   cout << "Solution alpha: " << solution.x[a_start] << endl;
   
+  
   for (int i = 0; i < N; i++) {
-    returnVec.push_back(x_start - 1 + i);
-    returnVec.push_back(y_start - 1 + i);
+    returnVec[2 * (1 + i)] = solution.x[x_start + i];
+    returnVec[1+ 2* (1 + i)] = solution.x[y_start + i];
   }
   
   return returnVec;

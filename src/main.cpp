@@ -108,7 +108,7 @@ int main() {
           double v = j[1]["speed"];
           double steering_angle = j[1]["steering_angle"];
           double throttle = j[1]["throttle"];
-
+          
           /*
            * TODO: Calculate steering angle and throttle using MPC.
            *
@@ -117,8 +117,8 @@ int main() {
            */
 
           // Unit transformations (sim to SI)
-          v = 1610 / 3600 * v; // mph to m/s
-
+          v = v * 1610 / 3600; // mph to m/s
+          
           // Project the vehicles position and orientation given the latency
           px = px + cos(psi) * v * t_latency;
           py = py + sin(psi) * v * t_latency;
@@ -147,14 +147,27 @@ int main() {
           // Calculate the cross-track and orientation error as taught in the class
           double cte = polyeval(coeffs, 0.0);
           double epsi = -atan(coeffs[1]);
+          
+          // Calculate radius as 1 / second derivation
+          double radius;
+          if (fabs(coeffs[2]) > 0.0001) {
+            radius = fabs(1 / (2*coeffs[2]));
+          } else {
+            radius = 2000.0;
+          }
+          cout << "Radius is " << radius << endl;
+          
+          // Calculate v_ref so that transversal acceleration is < 7 m/s^2 
+          double ref_v = min(50.0, sqrt(7*radius));
+          cout << "Reference speed (m/s) is " << ref_v << endl;
 
           // Create the state vector
           Eigen::VectorXd state(6);
           state << 0.0, 0.0, 0.0, v, cte, epsi;
 
           // Solve the optimization problem and retrieve the actuator values
-          vector<double> returnedDat = mpc.Solve(state, coeffs);
-
+          vector<double> returnedDat = mpc.Solve(state, coeffs, ref_v);
+   
           double steer_value = returnedDat[0] / deg2rad(25); ;
           double throttle_value = returnedDat[1];
 
@@ -162,9 +175,10 @@ int main() {
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
           // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
           msgJson["steering_angle"] = steer_value;
-//          msgJson["throttle"] = throttle_value;
-          msgJson["throttle"] = 0.3;
+          msgJson["throttle"] = throttle_value;
+//          msgJson["throttle"] = 0.3;
 
+          
           //Display the MPC predicted trajectory 
           vector<double> mpc_x_vals;
           vector<double> mpc_y_vals;
@@ -198,7 +212,7 @@ int main() {
 
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-          std::cout << msg << std::endl;
+//          std::cout << msg << std::endl;
           // Latency
           // The purpose is to mimic real driving conditions where
           // the car does actuate the commands instantly.
