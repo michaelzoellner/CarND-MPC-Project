@@ -7,8 +7,8 @@ using CppAD::AD;
 
 // TODO: Set the timestep length and duration
 // Start by using the numbers from the MPC quiz
-size_t N = 15;
-double dt = 0.15;
+size_t N = 10;
+double dt = 0.2;
 
 // Calculate the position of the first item of a kind in the total state vector
 size_t x_start = 0;
@@ -24,10 +24,10 @@ size_t a_start = delta_start + N - 1;
 float cost_weight_cte = 5;
 float cost_weight_epsi = 1;
 float cost_weight_vref = 1;
-float cost_weight_delta = 2000;
-float cost_weight_delta_grad = 2000;
+float cost_weight_delta = 1000;
+float cost_weight_delta_grad = 1000;
 float cost_weight_alpha = 1;
-float cost_weight_alpha_grad = 1;
+float cost_weight_alpha_grad = 10;
 
 class FG_eval {
 public:

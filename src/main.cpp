@@ -151,7 +151,7 @@ int main() {
           // Calculate radius as 1 / second derivation
           double radius;
           if (fabs(coeffs[2]) > 0.0001) {
-            radius = fabs(1 / (2*coeffs[2]));
+            radius = fabs(1 / (2*coeffs[2] + 6*coeffs[3]*next_x_vals[wayptsx.size()]));
           } else {
             radius = 2000.0;
           }

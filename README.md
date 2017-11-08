@@ -3,16 +3,82 @@ Self-Driving Car Engineer Nanodegree Program
 
 ---
 
-## My notes
+## Basic approach
 
-# Tricky things to figure out
-- Projection of the vehicles state after latency: State needed in the vehicles coordinate system, hence the movement starts at x = y = psi = 0
-- Diverse unit, offset and orientation corrections: mph to m/s, radians to degrees, clockwise vs. counter-clockwise orientation
+The implementation of the Model-predictive controller is strongly based on the 
+code of the previous lesson. A kinematic model is used and it is sufficient to 
+project course of the vehicle depending on the two actuators (acceleration and 
+steering) with the required precision.
 
+Some of the differences compared to the lesson code will be explained below.
 
+## Tricky things to figure out
 
+# Projection of the vehicles state after latency
 
+The simulation involves some latency between sensoring (positon, orientation 
+and speed) and actuation (acceleration and steering), very much comparable to 
+any complex mechatronic control system on a real vehicle. This means that at 
+time t = t0, there is a timestep t = t0 + t_latency, which is the next time at 
+which we can influence the vehicles movement with our actuation. The time 
+between t0 and t0 + t_latency will have (already) passed when our actuation is 
+calculated and passed on.
 
+In order to calculate the best-fitting actuation, not the current the state of 
+the vehicle at t0, but the projected state at t0 + t_latency is considered. 
+This is done by applying the simple kinematic model to the sensed position, 
+orientation and speed at t0.
+
+# State needed in the vehicles coordinate system
+
+The MPC "sees the world" from the vehicles point of view. That means that the 
+waypoints need to be transformed to that position and orientation, as well as 
+the current state of the vehicles as well. This "results" in px = py = psi_unity = 0 
+for all times!
+
+# Diverse unit, offset and orientation corrections
+
+The kinematic model of the vehicle is working with SI units, whereas the 
+simulator telemetry data is using miles per hour and normalized throttle and 
+steering. Also, it is using clockwise direction as positive, where as the 
+mathematical world is turning counter clockwise for positive values. Therefore, 
+diverse unit and orientation transformations had to be applied. 
+
+# Reference speed
+
+I used a fixed reference speed at first. However this is not realistic (unless 
+imagine a really low speed limit). When I think about my realworld driving on a 
+countryside road, the reference speed is built on two facts:
+--* A general speed limit (100 km/h, I used 50 m/s in the project however)
+--* The maximum transversal acceleration (I chose 7 m/s^, though great sports cars achieve more than 10 m/s^2)
+As the transversal acceleration is v^2/R, I had to estimate the radius based on 
+the polynomial coefficients to figure out the reference speed.
+
+# Variables types and how they are initiated by C++
+
+I spent **by far the most time** with a "bug" that results from using C++ with a 
+MATLAB-trained mind. Thus I had to learn that the mph to m/s transformation 
+would not result in the same numbers if you write either of the two 
+```
+v = 1610/3600 * v; 
+v = v * 1610/3600;
+```
+Same goes for the steering angle limits
+``
+vars_lowerbound[i] = -0.4; // returns a float
+vars_lowerbound[i] = -25/180 * pi(); // returns an integer (zero!)
+
+## Tweaking of the numbers
+
+Tuning the number and time of the projection steps is a trade-off between 
+calculation performance and stability. I figured that 10 steps with a deltaT of 
+0.2s, hence a projection/optimization horizon of 2s sufficient.
+
+The other tuning job involves the different weights of the cost function. As 
+the most fundamental requirement is to stay on track and move forward, I 
+started by using only the two cost weights that penalize cross-track and 
+velocity error. Using the other weights (orientation error, actuator use and 
+gradient) in addition to this led to a further improved driving behavior. 
 
 ## Dependencies
 
